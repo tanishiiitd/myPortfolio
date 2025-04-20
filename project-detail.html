@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Project Detail - Tanish's Portfolio</title>
+    <style>
+      :root {
+        --bg-color: #000;
+        --text-color: #fff;
+        --accent-color: #ff9500;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100vh;
+        background-color: black;
+        color: white;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .back-button {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        z-index: 100;
+        padding: 10px 20px;
+        background-color: rgba(255, 165, 0, 0.3);
+        border: none;
+        color: white;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: all 0.3s ease;
+      }
+
+      .back-button:hover {
+        background-color: rgba(255, 165, 0, 0.6);
+      }
+
+      #card-container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .project-info {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center;
+        width: 100%;
+        max-width: 600px;
+        padding: 20px;
+        z-index: 10;
+      }
+
+      .project-info h1 {
+        font-size: 2.5rem;
+        color: var(--accent-color);
+        margin-bottom: 10px;
+      }
+
+      .project-info p {
+        font-size: 1.2rem;
+        margin-bottom: 20px;
+      }
+
+      .instruction {
+        font-size: 0.9rem;
+        opacity: 0.7;
+        margin-top: 20px;
+      }
+
+      #background-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+      }
+
+      @media (max-width: 768px) {
+        .project-info h1 {
+          font-size: 2rem;
+        }
+
+        .project-info p {
+          font-size: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="background-canvas"></canvas>
+    <button class="back-button" onclick="goBack()">← Back</button>
+
+    <div id="card-container"></div>
+
+    <div class="project-info">
+      <h1 id="project-title">Project Title</h1>
+      <p id="project-description">Project description loading...</p>
+      <div class="instruction">Click and drag to rotate the hologram</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.156.1/build/three.min.js"></script>
+    <script>
+      // Get URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const projectId = urlParams.get("id");
+      const projectTitle = urlParams.get("title") || "Project";
+      const projectDescription =
+        urlParams.get("description") ||
+        "A detailed project description will appear here.";
+
+      // Update project info
+      document.getElementById("project-title").textContent = projectTitle;
+      document.getElementById("project-description").textContent =
+        projectDescription;
+      document.title = projectTitle + " - Tanish's Portfolio";
+
+      // Go back function
+      function goBack() {
+        window.history.back();
+      }
+
+      // Set up three.js scene
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+      });
+
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setClearColor(0x000000, 0);
+      document
+        .getElementById("card-container")
+        .appendChild(renderer.domElement);
+
+      // Determine if it's the TEDx project
+      const isTedxProject = projectId === "2";
+
+      // Card dimensions
+      const cardWidth = isTedxProject ? 6 : 10;
+      const cardHeight = isTedxProject ? 10 : 6;
+      const cardDepth = 0.2;
+
+      // Create card geometry
+      const geometry = new THREE.BoxGeometry(cardWidth, cardHeight, cardDepth);
+
+      // Define materials for each face of the card
+      const frontTexture = createTextureForFront(
+        projectTitle,
+        projectDescription
+      );
+
+      // Determine which image to use based on project ID
+      const imageNumber = parseInt(projectId) + 1;
+      const imageExtension = imageNumber === 2 ? "jpg" : "png";
+      const backTexture = new THREE.TextureLoader().load(
+        `image${imageNumber}.${imageExtension}`,
+        // onLoad callback - make sure texture is properly loaded
+        function (texture) {
+          // Update the back material with the loaded texture
+          materials[5].map = texture;
+          materials[5].needsUpdate = true;
+        },
+        // onProgress callback (not used)
+        undefined,
+        // onError callback
+        function (err) {
+          console.error("Error loading image:", err);
+          // Fallback to color if image can't be loaded
+          materials[5].color = new THREE.Color(0xffffff);
+          materials[5].map = null;
+          materials[5].needsUpdate = true;
+        }
+      );
+
+      const materials = [
+        new THREE.MeshBasicMaterial({
+          color: 0xff9500,
+          transparent: true,
+          opacity: 0.3,
+        }), // Right
+        new THREE.MeshBasicMaterial({
+          color: 0xff9500,
+          transparent: true,
+          opacity: 0.3,
+        }), // Left
+        new THREE.MeshBasicMaterial({
+          color: 0xff9500,
+          transparent: true,
+          opacity: 0.3,
+        }), // Top
+        new THREE.MeshBasicMaterial({
+          color: 0xff9500,
+          transparent: true,
+          opacity: 0.3,
+        }), // Bottom
+        new THREE.MeshBasicMaterial({ map: frontTexture }), // Front - description
+        new THREE.MeshBasicMaterial({
+          color: 0xffffff, // No orange tint
+          transparent: false,
+          opacity: 1.0,
+        }), // Back - will be replaced with image
+      ];
+
+      // Create card mesh
+      const card = new THREE.Mesh(geometry, materials);
+      scene.add(card);
+
+      // Add ambient light
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+      scene.add(ambientLight);
+
+      // Add directional light for some shadows
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(5, 5, 5);
+      scene.add(directionalLight);
+
+      // Position camera
+      camera.position.z = 15;
+
+      // Variables for rotation
+      let isDragging = false;
+      let previousMousePosition = {
+        x: 0,
+        y: 0,
+      };
+
+      // Create the audio element
+      const audio = new Audio("soothingaudio.mp3");
+      audio.preload = "auto";
+
+      function playDragSound() {
+        if (isDragging && audio.paused) {
+          audio.play().catch((e) => {
+            console.log("Audio play was blocked:", e);
+          });
+        }
+      }
+
+      // Event listeners for mouse/touch interaction
+      document.addEventListener("mousedown", onMouseDown);
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+
+      document.addEventListener("touchstart", onTouchStart, { passive: false });
+      document.addEventListener("touchmove", onTouchMove, { passive: false });
+      document.addEventListener("touchend", onTouchEnd);
+
+      // Mouse event handlers
+      function onMouseDown(event) {
+        isDragging = true;
+        previousMousePosition = {
+          x: event.clientX,
+          y: event.clientY,
+        };
+        event.preventDefault();
+      }
+
+      function onMouseMove(event) {
+        if (isDragging) {
+          const deltaMove = {
+            x: event.clientX - previousMousePosition.x,
+            y: event.clientY - previousMousePosition.y,
+          };
+
+          // Rotate based on mouse movement
+          card.rotation.y += deltaMove.x * 0.01;
+          card.rotation.x += deltaMove.y * 0.01;
+
+          previousMousePosition = {
+            x: event.clientX,
+            y: event.clientY,
+          };
+
+          playDragSound(); // 🔈 Play sound while dragging
+        }
+      }
+
+      function onMouseUp() {
+        isDragging = false;
+        audio.pause(); // 🔇 Stop the audio
+        audio.currentTime = 0; // ⏮️ Reset to beginning (optional)
+      }
+
+      // Touch event handlers
+      function onTouchStart(event) {
+        if (event.touches.length === 1) {
+          isDragging = true;
+          previousMousePosition = {
+            x: event.touches[0].clientX,
+            y: event.touches[0].clientY,
+          };
+        }
+        event.preventDefault();
+      }
+
+      function onTouchMove(event) {
+        if (isDragging && event.touches.length === 1) {
+          const deltaMove = {
+            x: event.touches[0].clientX - previousMousePosition.x,
+            y: event.touches[0].clientY - previousMousePosition.y,
+          };
+
+          // Rotate based on touch movement
+          card.rotation.y += deltaMove.x * 0.01;
+          card.rotation.x += deltaMove.y * 0.01;
+
+          previousMousePosition = {
+            x: event.touches[0].clientX,
+            y: event.touches[0].clientY,
+          };
+
+          playDragSound(); // 🔈 Play sound while dragging on touch
+        }
+        event.preventDefault();
+      }
+
+      function onTouchEnd() {
+        audio.pause(); // 🔇 Stop the audio
+        audio.currentTime = 0;
+      }
+
+      // Generate texture for the front face with description
+      function createTextureForFront(title, description) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1024; // Higher res for better text quality
+        canvas.height = 512; // Maintain aspect ratio for landscape
+        const context = canvas.getContext("2d");
+
+        // Fill background with semi-transparent color
+        context.fillStyle = "rgba(0, 0, 0, 0.8)";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Add border glow
+        const gradient = context.createLinearGradient(
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+        gradient.addColorStop(0, "#FF9500");
+        gradient.addColorStop(1, "rgba(255, 149, 0, 0.3)");
+
+        context.strokeStyle = gradient;
+        context.lineWidth = 20;
+        context.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+
+        // Add title
+        context.fillStyle = "#FF9500";
+        context.font = "bold 60px Arial";
+        context.textAlign = "center";
+        context.fillText(title, canvas.width / 2, 100);
+
+        // Underline
+        context.beginPath();
+        context.moveTo(canvas.width / 4, 120);
+        context.lineTo((canvas.width / 4) * 3, 120);
+        context.strokeStyle = "rgba(255, 149, 0, 0.7)";
+        context.lineWidth = 3;
+        context.stroke();
+
+        // Add description
+        context.fillStyle = "#FFFFFF";
+        context.font = "30px Arial";
+        context.textAlign = "left";
+        wrapText(context, description, 50, 180, canvas.width - 100, 40);
+
+        // Add holographic effects - subtle horizontal lines
+        for (let y = 0; y < canvas.height; y += 8) {
+          context.beginPath();
+          context.moveTo(0, y);
+          context.lineTo(canvas.width, y);
+          context.strokeStyle = `rgba(255, 255, 255, ${Math.random() * 0.05})`;
+          context.lineWidth = 1;
+          context.stroke();
+        }
+
+        const texture = new THREE.CanvasTexture(canvas);
+        return texture;
+      }
+
+      // Text wrapping function
+      function wrapText(context, text, x, y, maxWidth, lineHeight) {
+        const words = text.split(" ");
+        let line = "";
+
+        for (let n = 0; n < words.length; n++) {
+          const testLine = line + words[n] + " ";
+          const metrics = context.measureText(testLine);
+          const testWidth = metrics.width;
+
+          if (testWidth > maxWidth && n > 0) {
+            context.fillText(line, x, y);
+            line = words[n] + " ";
+            y += lineHeight;
+          } else {
+            line = testLine;
+          }
+        }
+
+        context.fillText(line, x, y);
+      }
+
+      // Add floating effect animation
+      function floatAnimation() {
+        card.position.y = Math.sin(Date.now() * 0.001) * 0.2;
+        card.rotation.z = Math.sin(Date.now() * 0.0005) * 0.05;
+      }
+
+      // Handle window resize
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      // Add background particles
+      function createParticles() {
+        const bgGeometry = new THREE.BufferGeometry();
+        const bgVertices = [];
+
+        for (let i = 0; i < 1500; i++) {
+          const x = (Math.random() - 0.5) * 2000;
+          const y = (Math.random() - 0.5) * 2000;
+          const z = (Math.random() - 0.5) * 2000;
+          bgVertices.push(x, y, z);
+        }
+
+        bgGeometry.setAttribute(
+          "position",
+          new THREE.Float32BufferAttribute(bgVertices, 3)
+        );
+
+        const bgMaterial = new THREE.PointsMaterial({
+          size: 3,
+          color: 0xff9500,
+          transparent: true,
+          opacity: 0.5,
+        });
+
+        const particles = new THREE.Points(bgGeometry, bgMaterial);
+        scene.add(particles);
+
+        return particles;
+      }
+
+      const particles = createParticles();
+
+      // Add holographic effect with scanlines
+      function addHolographicEffect() {
+        const scanlineGeometry = new THREE.PlaneGeometry(
+          cardWidth + 1,
+          cardHeight + 1
+        );
+        const scanlineMaterial = new THREE.ShaderMaterial({
+          transparent: true,
+          uniforms: {
+            time: { value: 0 },
+          },
+          vertexShader: `
+            varying vec2 vUv;
+            void main() {
+              vUv = uv;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `,
+          fragmentShader: `
+            uniform float time;
+            varying vec2 vUv;
+            void main() {
+              float scanline = sin(vUv.y * 100.0 + time * 5.0) * 0.5 + 0.5;
+              float glow = sin(time) * 0.1 + 0.1;
+              gl_FragColor = vec4(1.0, 0.6, 0.0, scanline * 0.1 + glow);
+            }
+          `,
+        });
+
+        const scanlines = new THREE.Mesh(scanlineGeometry, scanlineMaterial);
+        scanlines.position.z = 0.11; // Slightly in front of the card
+        card.add(scanlines);
+
+        return scanlineMaterial;
+      }
+
+      const holographicMaterial = addHolographicEffect();
+
+      // Animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+
+        floatAnimation();
+
+        // Update holographic effect
+        holographicMaterial.uniforms.time.value = Date.now() * 0.001;
+
+        // Rotate particles slowly
+        particles.rotation.y += 0.0002;
+
+        renderer.render(scene, camera);
+      }
+
+      animate();
+
+      // Set up ambient background effect
+      setupBackgroundEffect();
+
+      function setupBackgroundEffect() {
+        const canvas = document.getElementById("background-canvas");
+        const ctx = canvas.getContext("2d");
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const particles = [];
+        const particleCount = 70;
+
+        // Create particles
+        for (let i = 0; i < particleCount; i++) {
+          particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: Math.random() * 3 + 1,
+            color: `rgba(255, 149, 0, ${Math.random() * 0.3})`,
+            speedX: Math.random() * 0.5 - 0.25,
+            speedY: Math.random() * 0.5 - 0.25,
+          });
+        }
+
+        function drawParticles() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          particles.forEach((particle) => {
+            ctx.beginPath();
+            ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+            ctx.fillStyle = particle.color;
+            ctx.fill();
+
+            // Update position
+            particle.x += particle.speedX;
+            particle.y += particle.speedY;
+
+            // Wrap around screen
+            if (particle.x < 0) particle.x = canvas.width;
+            if (particle.x > canvas.width) particle.x = 0;
+            if (particle.y < 0) particle.y = canvas.height;
+            if (particle.y > canvas.height) particle.y = 0;
+          });
+
+          requestAnimationFrame(drawParticles);
+        }
+
+        drawParticles();
+
+        // Handle window resize for background
+        window.addEventListener("resize", () => {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+        });
+      }
+
+      // Start with a slight rotation so user can see it's 3D
+      card.rotation.y = 0.3;
+    </script>
+  </body>
+</html>
